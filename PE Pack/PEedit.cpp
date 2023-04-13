@@ -56,3 +56,29 @@ DWORD PEedit::setOepRva(LPBYTE pPeBuf, DWORD RVA) {
 	*pRVA = RVA;
 	return oldrva;
 }
+
+DWORD PEedit::shiftReloc(LPBYTE pPeBuf, size_t oldImageBase, size_t newImageBase, DWORD offset, bool bMemAlign) {
+	DWORD all_num = 0;
+	DWORD sumsize = 0;
+	auto pRelocEntry = &GetImageDataDirectory(pPeBuf)[IMAGE_DIRECTORY_ENTRY_BASERELOC];
+	while (sumsize < pRelocEntry->Size)
+	{
+		auto pBaseRelocation =  PIMAGE_BASE_RELOCATION(pPeBuf + sumsize + (bMemAlign ? pRelocEntry->VirtualAddress : rva2faddr(pPeBuf, pRelocEntry->VirtualAddress)));
+		auto pRelocOffset = (PRELOCOFFSET)((LPBYTE)pBaseRelocation + sizeof(IMAGE_BASE_RELOCATION));
+		DWORD item_num = (pBaseRelocation->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(RELOCOFFSET);
+		for (size_t i = 0; i < item_num; i++) {
+			if (!pRelocOffset[i].type && !pRelocOffset[i].Offset) {
+				continue;
+			}
+			DWORD toffset = pRelocOffset[i].Offset + pBaseRelocation->VirtualAddress;
+			if (!bMemAlign) {
+				toffset = rva2faddr(pPeBuf, toffset);
+			}
+			// 新的重定位地址 = 重定位后的地址(VA)-加载时的镜像基址(hModule VA) + 新的镜像基址(VA) + 新代码基址RVA（前面用于存放压缩的代码）
+			// 由于讲dll附加在后面，需要在dll shell中的重定位加上偏移修正
+			*(PDWORD)(pPeBuf + toffset) += newImageBase - oldImageBase + offset;//重定向每一项地址
+		}
+	}
+	return all_num;
+
+}

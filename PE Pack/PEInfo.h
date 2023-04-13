@@ -4,6 +4,10 @@
 
 #define PEHBUF_SIZE 0X500
 
+typedef struct {
+	WORD Offset : 12;  //偏移值
+	WORD type : 4;  //重定位属性(方式)
+} RELOCOFFSET,* PRELOCOFFSET;
 
 class PEInfo {
 public:

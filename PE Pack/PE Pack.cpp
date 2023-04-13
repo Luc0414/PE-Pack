@@ -5,7 +5,6 @@
 int main(int args,char ** argv)
 {
 	wchar_t szExePath[] = L"F:\\Development\\C++\\PE-Pack\\PE Pack\\notepad.exe";
-
 	//char cExePath[] = "D:\\Wh0Am1\\C++\\PE Pack\\PE Pack\\notepad.exe";
 	//char cExePath1[] = "D:\\Wh0Am1\\C++\\PE Pack\\PE Pack\\test.exe";
 
