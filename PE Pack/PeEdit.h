@@ -1,4 +1,6 @@
 #pragma once
+#include <fstream>
+#include <functional>
 
 #include "PEInfo.h"
 #ifndef _PEEDIT_H
@@ -15,6 +17,7 @@ public:
 	static DWORD shiftReloc(LPBYTE pPeBuf, size_t oldImageBase, size_t newImageBase, DWORD offset, bool bMemAlign = true);
 	// 将IAT进行基址变换, 返回修改iat数量
 	static DWORD shiftOft(LPBYTE pPeBuf, DWORD offset, bool bMemAlign = true, bool bResetFt = true);
+	static DWORD appendSection(LPBYTE pPeBuf, IMAGE_SECTION_HEADER newSectHeader,LPBYTE pNewSectBuf, DWORD newSectSize, bool bMemAlign = true);
 public:
 
 };

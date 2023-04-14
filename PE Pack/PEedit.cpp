@@ -1,6 +1,4 @@
 #include "PeEdit.h"
-#include <fstream>
-#include <functional>
 using namespace std;
 
 DWORD PEedit::addOverlay(const char* path, LPBYTE pOverlay, DWORD size) {
@@ -37,7 +35,7 @@ DWORD PEedit::setOepRva(const char* path, DWORD RVA) {
 	if (oldrva == 0) {
 		return 0;
 	}
-	//ios::out则清空文件，ios::app每次写都是在最后，ios::ate可以用seekp
+	//ios::out则清空文件，ios::app 每次进行写入操作的时候都会重新定位到文件的末尾,ios::ate 打开文件之后立即定位到文件末尾
 	std::unique_ptr<std::ofstream, std::function<void(std::ofstream*)>> foutGuard(
 		new std::ofstream(path, std::ios_base::binary | std::ios_base::ate | std::ios::in),
 		[](std::ofstream* f) { f->close(); });
@@ -122,4 +120,58 @@ DWORD PEedit::shiftOft(LPBYTE pPeBuf, DWORD offset, bool bMemAlign, bool bResetF
 		func_num += item_num;
 	}
 	return func_num;
+}
+
+DWORD PEedit::appendSection(LPBYTE pPeBuf, IMAGE_SECTION_HEADER newSectHeader, LPBYTE pNewSectBuf, DWORD newSectSize, bool bMemAlign) {
+	// 增加一个区段，获取旧区段数量,先将旧区段数量赋值给oldSectNum，然后对NumberOfSections + 1
+	WORD oldSectNum = GetFileHeader(pPeBuf)->NumberOfSections++;
+	// 获取可选头指针
+	auto pOptHeader = GetOptionalHeader(pPeBuf);
+	// 获取区段头指针
+	auto pSectHeader = GetSectionHeader(pPeBuf);
+	// 获取文件对齐大小
+	DWORD fileAlign = pOptHeader->FileAlignment;
+	// 获取内存对齐大小
+	DWORD memAlign = pOptHeader->SectionAlignment;
+
+	// 如果新区段的SizeOfRawData字段为0，则设置为以fileAlign对齐的newSectSize
+	if (!newSectHeader.SizeOfRawData) {
+		newSectHeader.SizeOfRawData = toAlign(newSectSize, fileAlign);
+	}
+	// 如果新区段的Misc.VirtualSize字段为0，则设置为newSectSize
+	if (!newSectHeader.Misc.VirtualSize) {
+		newSectHeader.Misc.VirtualSize = newSectSize;
+	}
+	// 如果新区段的PointerToRawData字段为0，则设置为上一个区段的PointerToRawData加上上一个区段的SizeOfRawData，以fileAlign对齐
+	if (!newSectHeader.PointerToRawData) {
+		newSectHeader.PointerToRawData = toAlign(pSectHeader[oldSectNum - 1].PointerToRawData + pSectHeader[oldSectNum - 1].SizeOfRawData, fileAlign);
+	}
+	else {
+		// 如果指定的PointerToRawData小于上一个区段的PointerToRawData加上上一个区段的SizeOfRawData，无法添加，返回0
+		if (newSectHeader.PointerToRawData < pSectHeader[oldSectNum - 1].PointerToRawData + toAlign(pSectHeader[oldSectNum - 1].SizeOfRawData, fileAlign)) {
+			return 0; 
+		}
+	}
+	// 如果新区段的VirtualAddress字段为0，则设置为上一个区段的VirtualAddress加上上一个区段的SizeOfRawData，以memAlign对齐
+	if (!newSectHeader.VirtualAddress) {
+		newSectHeader.VirtualAddress = toAlign(pSectHeader[oldSectNum - 1].VirtualAddress + pSectHeader[oldSectNum - 1].SizeOfRawData, memAlign);
+	}
+	else {
+		// 如果指定的VirtualAddress小于上一个区段的VirtualAddress加上上一个区段的Misc.VirtualSize，无法添加，返回0
+		if (newSectHeader.VirtualAddress < pSectHeader[oldSectNum - 1].VirtualAddress + toAlign(pSectHeader[oldSectNum - 1].Misc.VirtualSize, memAlign)) {
+			return 0; 
+		}
+		// 修改前一个区段的Misc.VirtualSize使得内存上没有空隙
+		pSectHeader[oldSectNum - 1].Misc.VirtualSize += (newSectHeader.VirtualAddress - pSectHeader[oldSectNum - 1].VirtualAddress - pSectHeader[oldSectNum - 1].Misc.VirtualSize) / memAlign * memAlign;
+	}
+
+	memcpy(&pSectHeader[oldSectNum], &newSectHeader, sizeof(IMAGE_SECTION_HEADER));
+	memset(&pSectHeader[oldSectNum + 1], 0, sizeof(IMAGE_SECTION_HEADER));
+
+	LPBYTE pNewSectStart = pPeBuf + (bMemAlign ? pSectHeader[oldSectNum].VirtualAddress : pSectHeader[oldSectNum].PointerToRawData);
+	memset(pNewSectStart, 0, bMemAlign ? memAlign : fileAlign);
+	memcpy(pNewSectStart, pNewSectBuf, newSectSize);
+
+	pOptHeader->SizeOfImage = pSectHeader[oldSectNum].VirtualAddress + toAlign(pSectHeader[oldSectNum].Misc.VirtualSize, memAlign);
+	return bMemAlign ? toAlign(newSectSize, memAlign) : toAlign(newSectSize, fileAlign);
 }
