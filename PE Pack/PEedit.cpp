@@ -58,27 +58,68 @@ DWORD PEedit::setOepRva(LPBYTE pPeBuf, DWORD RVA) {
 }
 
 DWORD PEedit::shiftReloc(LPBYTE pPeBuf, size_t oldImageBase, size_t newImageBase, DWORD offset, bool bMemAlign) {
+	// 重定位表中所有的重定位项的数量
 	DWORD all_num = 0;
+	// 已经遍历的重定位表数据大小
 	DWORD sumsize = 0;
+	// 获取重定位表的数据目录
 	auto pRelocEntry = &GetImageDataDirectory(pPeBuf)[IMAGE_DIRECTORY_ENTRY_BASERELOC];
+	// 遍历所有的重定位块
 	while (sumsize < pRelocEntry->Size)
 	{
-		auto pBaseRelocation =  PIMAGE_BASE_RELOCATION(pPeBuf + sumsize + (bMemAlign ? pRelocEntry->VirtualAddress : rva2faddr(pPeBuf, pRelocEntry->VirtualAddress)));
+		// 获取当前重定位块的首地址
+		auto pBaseRelocation = PIMAGE_BASE_RELOCATION(pPeBuf + sumsize + (bMemAlign ? pRelocEntry->VirtualAddress : rva2faddr(pPeBuf, pRelocEntry->VirtualAddress)));
+		// 获取当前重定位块中的所有偏移量项
 		auto pRelocOffset = (PRELOCOFFSET)((LPBYTE)pBaseRelocation + sizeof(IMAGE_BASE_RELOCATION));
+		// 计算当前重定位块中的偏移量项数量
 		DWORD item_num = (pBaseRelocation->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(RELOCOFFSET);
+		// 遍历当前重定位块中的所有偏移量项
 		for (size_t i = 0; i < item_num; i++) {
 			if (!pRelocOffset[i].type && !pRelocOffset[i].Offset) {
 				continue;
 			}
+			/* 需要修改的RVA */
 			DWORD toffset = pRelocOffset[i].Offset + pBaseRelocation->VirtualAddress;
 			if (!bMemAlign) {
+				// 如果需要修正偏移地址，将RVA转化为FOA
 				toffset = rva2faddr(pPeBuf, toffset);
 			}
-			// 新的重定位地址 = 重定位后的地址(VA)-加载时的镜像基址(hModule VA) + 新的镜像基址(VA) + 新代码基址RVA（前面用于存放压缩的代码）
-			// 由于讲dll附加在后面，需要在dll shell中的重定位加上偏移修正
-			*(PDWORD)(pPeBuf + toffset) += newImageBase - oldImageBase + offset;//重定向每一项地址
+			// 取需要修改位置的值
+			DWORD* pRelocAddr = reinterpret_cast<DWORD*>(pPeBuf + toffset);
+			// 修改VA,新基地址 - 旧基地址 + 壳的大小，这是因为内存空间多了个壳的段，跟原文件的内存空间分配不同
+			*pRelocAddr += newImageBase - oldImageBase + offset;
 		}
+		// 修正重定位块的虚拟地址
+		pBaseRelocation->VirtualAddress += offset;
+		// 更新已经遍历的重定位表数据大小和重定位项数量
+		sumsize += sizeof(PRELOCOFFSET) * item_num + sizeof(IMAGE_BASE_RELOCATION);
+		all_num += item_num;
 	}
 	return all_num;
 
+}
+
+DWORD PEedit::shiftOft(LPBYTE pPeBuf, DWORD offset, bool bMemAlign, bool bResetFt) {
+	auto pImportEntry = &GetImageDataDirectory(pPeBuf)[IMAGE_DIRECTORY_ENTRY_IMPORT];
+	DWORD dll_num = pImportEntry->Size / sizeof(IMAGE_IMPORT_DESCRIPTOR);
+	DWORD func_num = 0;
+	auto pImportDescriptor = (PIMAGE_IMPORT_DESCRIPTOR)(pPeBuf + (bMemAlign ? pImportEntry->VirtualAddress : rva2faddr(pPeBuf, pImportEntry->VirtualAddress)));
+	for (size_t i = 0; i < dll_num; i++) {
+		if (pImportDescriptor[i].OriginalFirstThunk == 0) continue;
+		auto pOFT = (PIMAGE_THUNK_DATA)(pPeBuf + (bMemAlign ? pImportDescriptor[i].OriginalFirstThunk : rva2faddr(pPeBuf, pImportDescriptor[i].OriginalFirstThunk)));
+		auto pFT = (PIMAGE_THUNK_DATA)(pPeBuf + (bMemAlign ? pImportDescriptor[i].FirstThunk : rva2faddr(pPeBuf, pImportDescriptor[i].FirstThunk)));
+		DWORD item_num = 0;
+		for (int j = 0; pOFT[j].u1.AddressOfData != 0; j++) {
+			item_num++;
+			if ((pOFT[j].u1.AddressOfData >> 31) != 0x1) {
+				pOFT[j].u1.AddressOfData += offset;
+				if (bResetFt) pFT[j].u1.AddressOfData = pOFT[j].u1.AddressOfData;
+			}
+		}
+		pImportDescriptor[i].OriginalFirstThunk += offset;
+		pImportDescriptor[i].FirstThunk += offset;
+		pImportDescriptor[i].Name = offset;
+		func_num += item_num;
+	}
+	return func_num;
 }
