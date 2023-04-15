@@ -27,7 +27,12 @@ public:
 		LPBYTE pOverlayBuf = NULL, DWORD OverlayBufSize = 0);//失败返回0，成功返回写入总字节数
 
 public:
-
+	DWORD setOepRva(DWORD rva);
+	DWORD shiftReloc(size_t oldImageBase, size_t newImageBase, DWORD offset);
+	DWORD shiftOft(DWORD offset, bool bResetFt = true);
+	DWORD appendSection(IMAGE_SECTION_HEADER newSectHeader,LPBYTE pNewSectBuf, DWORD newSectSize); 
+	DWORD removeSectionDatas(int removeNum, int removeIdx[]); // 移除区段, removeIdx必须顺序，返回remove后的区段数
+	DWORD savePeFile(const char* path, bool bShrinkPe = true); //保存缓冲区pe文件
 };
 
 #endif

@@ -262,3 +262,42 @@ DWORD PEedit::savePeFile(const char* path, LPBYTE pPeBuf, DWORD FileBufSize, boo
 	fout->seekp(0, ios::beg);
 	fout->write((const char*)pPeBuf, pOptionalHeader->SizeOfHeaders);
 }
+
+
+/* public funcitons*/
+DWORD PEedit::setOepRva(DWORD rva)
+{
+	return setOepRva(m_pPeBuf, rva);
+}
+
+DWORD  PEedit::shiftReloc(size_t oldImageBase, size_t newImageBase, DWORD offset)
+{
+	return shiftReloc(m_pPeBuf, oldImageBase, newImageBase, offset, m_bMemAlign);
+}
+
+DWORD  PEedit::shiftOft(DWORD offset, bool bResetFt)
+{
+	return shiftOft(m_pPeBuf, offset, m_bMemAlign, bResetFt);
+}
+
+DWORD PEedit::appendSection(IMAGE_SECTION_HEADER newSectHeader, LPBYTE pSectBuf, DWORD newSectSize)
+{
+	DWORD addedSize = toAlign(newSectSize), newBufSize = 0;
+	if (m_bMemAlign)
+	{
+		newBufSize = (newSectHeader.VirtualAddress > m_dwPeBufSize ? newSectHeader.VirtualAddress : m_dwPeBufSize) + addedSize;
+	}
+	else
+	{
+		newBufSize = (newSectHeader.PointerToRawData > m_dwPeBufSize ?newSectHeader.PointerToRawData : m_dwPeBufSize) + addedSize;
+	}
+
+	LPBYTE pTmp = new BYTE[newBufSize];
+	memset(pTmp, 0, newBufSize);
+	memcpy(pTmp, m_pPeBuf, m_dwPeBufSize);
+	if (m_bMemAlloc) delete[] m_pPeBuf;
+	m_bMemAlloc = true;
+	m_pPeBuf = pTmp;
+	m_dwPeBufSize = newBufSize;
+	return appendSection(m_pPeBuf, newSectHeader, pSectBuf, newSectSize, m_bMemAlign);
+}
