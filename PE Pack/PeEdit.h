@@ -18,6 +18,8 @@ public:
 	// 将IAT进行基址变换, 返回修改iat数量
 	static DWORD shiftOft(LPBYTE pPeBuf, DWORD offset, bool bMemAlign = true, bool bResetFt = true);
 	static DWORD appendSection(LPBYTE pPeBuf, IMAGE_SECTION_HEADER newSectHeader,LPBYTE pNewSectBuf, DWORD newSectSize, bool bMemAlign = true);
+	// 移除区段数据，返回删除的区段raw size和。不移除header了，因为区段中间有空隙加载pe会出问题
+	static DWORD removeSectionDatas(LPBYTE pPeBuf, int removeNum, int removeIdx[]);
 public:
 
 };

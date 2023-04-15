@@ -1,4 +1,5 @@
 #include "PeEdit.h"
+#include <algorithm>
 using namespace std;
 
 DWORD PEedit::addOverlay(const char* path, LPBYTE pOverlay, DWORD size) {
@@ -174,4 +175,28 @@ DWORD PEedit::appendSection(LPBYTE pPeBuf, IMAGE_SECTION_HEADER newSectHeader, L
 
 	pOptHeader->SizeOfImage = pSectHeader[oldSectNum].VirtualAddress + toAlign(pSectHeader[oldSectNum].Misc.VirtualSize, memAlign);
 	return bMemAlign ? toAlign(newSectSize, memAlign) : toAlign(newSectSize, fileAlign);
+}
+
+
+DWORD PEedit::removeSectionDatas(LPBYTE pPeBuf, int removeNum, int removeIdx[]) {
+	// 获取文件头指针，其中包括文件头信息和可选头信息
+	WORD oldSectNum = GetFileHeader(pPeBuf)->NumberOfSections;
+	auto pOtHeader = GetOptionalHeader(pPeBuf);
+	auto pSectHeader = GetSectionHeader(pPeBuf);
+
+	DWORD decreseRawSize = 0;
+	std::sort(removeIdx, removeIdx + removeNum);
+	int tmpidx = 0;
+	for (int i = 0; i < oldSectNum; i++) {
+		if (tmpidx < removeNum && i == removeIdx[tmpidx]) {
+			decreseRawSize += pSectHeader[i].SizeOfRawData;
+			pSectHeader[i].SizeOfRawData = 0;
+			if (i < oldSectNum - 1) {
+				// 将下一个节的地址更改为删除节的地址
+				pSectHeader[i + 1].PointerToRawData = pSectHeader[i].PointerToRawData;
+			}
+			tmpidx++;
+		}
+	}
+	return decreseRawSize;
 }

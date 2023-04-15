@@ -10,16 +10,17 @@ int main(int args, char** argv)
 	//char cExePath[] = "D:\\Wh0Am1\\C++\\PE Pack\\PE Pack\\notepad.exe";
 	const char* in = "D:\\Wh0Am1\\C++\\PE-Pack\\PE Pack\\test.exe";
 	const char * out = "D:\\Wh0Am1\\C++\\PE-Pack\\PE Pack\\Newtest.exe";
+	const char* delSectHeader = "D:\\Wh0Am1\\C++\\PE-Pack\\PE Pack\\delSectHeader.exe";
 	char cExePath[] = "F:\\Development\\C++\\PE-Pack\\PE Pack\\notepad.exe";
-	//char cExePath1[] = "F:\\Development\\C++\\PE-Pack\\PE Pack\\test.exe";
+	char cExePath1[] = "F:\\Development\\C++\\PE-Pack\\PE Pack\\test.exe";
 
 
 	char overlay[] = "Whoami";
 
 	/* 文件写入 */
-	std::unique_ptr<std::ofstream, std::function<void(std::ofstream*)>> foutGuard(new std::ofstream(out, ios_base::binary | ios_base::out), [](std::ofstream* f) { f->close(); });
+	std::unique_ptr<std::ofstream, std::function<void(std::ofstream*)>> foutGuard(new std::ofstream(delSectHeader, ios_base::binary | ios_base::out), [](std::ofstream* f) { f->close(); });
 	/* 文件读取 */
-	std::unique_ptr<std::ifstream, std::function<void(std::ifstream*)>> finGuard(new std::ifstream(in, std::ios_base::in | std::ios_base::binary), [](std::ifstream* f) {f->close(); });
+	std::unique_ptr<std::ifstream, std::function<void(std::ifstream*)>> finGuard(new std::ifstream(out, std::ios_base::in | std::ios_base::binary), [](std::ifstream* f) {f->close(); });
 
 	std::ifstream* fin = NULL;
 	std::ofstream* fout = NULL;
@@ -38,16 +39,10 @@ int main(int args, char** argv)
 		// 读取文件内容到指定缓冲区
 		fin->read(reinterpret_cast<char*>(pFileBuf), fsize);
 
-		BYTE NewSecBuf[5687];
-		memset(NewSecBuf, 56, 5687);
-		PIMAGE_SECTION_HEADER NewSecHeader = new IMAGE_SECTION_HEADER;
-		*NewSecHeader = {};
-		const char* sectionName = ".luc";
-		strcpy((char*)NewSecHeader->Name, sectionName);
-		DWORD result = PEedit::appendSection(pFileBuf, *NewSecHeader, NewSecBuf,5687,false);
+		int removeIdx[] = { 3 };
+		DWORD result = PEedit::removeSectionDatas(pFileBuf,1, removeIdx);
 
-		auto pOptHeader = PEedit::GetOptionalHeader(pFileBuf);
-		fout->write((char *)pFileBuf, fsize + 0x1800);
+		fout->write((char *)pFileBuf, fsize);
 		system("pause");
 	}
 	else {
