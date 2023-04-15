@@ -2,6 +2,7 @@
 #include <algorithm>
 using namespace std;
 
+/* 已调试 */
 DWORD PEedit::addOverlay(const char* path, LPBYTE pOverlay, DWORD size) {
 	if (pOverlay == NULL || size == 0) {
 		return 0;
@@ -23,6 +24,7 @@ DWORD PEedit::addOverlay(const char* path, LPBYTE pOverlay, DWORD size) {
 	return size;
 }
 
+/* 已调试 */
 DWORD PEedit::setOepRva(const char* path, DWORD RVA) {
 	if (RVA == NULL) {
 		return 0;
@@ -47,6 +49,7 @@ DWORD PEedit::setOepRva(const char* path, DWORD RVA) {
 
 }
 
+/* 已调试 */
 DWORD PEedit::setOepRva(LPBYTE pPeBuf, DWORD RVA) {
 	if (pPeBuf == NULL) return 0;
 	if (isPe(pPeBuf) <= 0) return 0;
@@ -56,6 +59,7 @@ DWORD PEedit::setOepRva(LPBYTE pPeBuf, DWORD RVA) {
 	return oldrva;
 }
 
+/* 未调试 */
 DWORD PEedit::shiftReloc(LPBYTE pPeBuf, size_t oldImageBase, size_t newImageBase, DWORD offset, bool bMemAlign) {
 	// 重定位表中所有的重定位项的数量
 	DWORD all_num = 0;
@@ -98,6 +102,7 @@ DWORD PEedit::shiftReloc(LPBYTE pPeBuf, size_t oldImageBase, size_t newImageBase
 
 }
 
+/* 未调试 */
 DWORD PEedit::shiftOft(LPBYTE pPeBuf, DWORD offset, bool bMemAlign, bool bResetFt) {
 	auto pImportEntry = &GetImageDataDirectory(pPeBuf)[IMAGE_DIRECTORY_ENTRY_IMPORT];
 	DWORD dll_num = pImportEntry->Size / sizeof(IMAGE_IMPORT_DESCRIPTOR);
@@ -123,6 +128,7 @@ DWORD PEedit::shiftOft(LPBYTE pPeBuf, DWORD offset, bool bMemAlign, bool bResetF
 	return func_num;
 }
 
+/* 已调试 */
 DWORD PEedit::appendSection(LPBYTE pPeBuf, IMAGE_SECTION_HEADER newSectHeader, LPBYTE pNewSectBuf, DWORD newSectSize, bool bMemAlign) {
 	// 增加一个区段，获取旧区段数量,先将旧区段数量赋值给oldSectNum，然后对NumberOfSections + 1
 	WORD oldSectNum = GetFileHeader(pPeBuf)->NumberOfSections++;
@@ -150,7 +156,7 @@ DWORD PEedit::appendSection(LPBYTE pPeBuf, IMAGE_SECTION_HEADER newSectHeader, L
 	else {
 		// 如果指定的PointerToRawData小于上一个区段的PointerToRawData加上上一个区段的SizeOfRawData，无法添加，返回0
 		if (newSectHeader.PointerToRawData < pSectHeader[oldSectNum - 1].PointerToRawData + toAlign(pSectHeader[oldSectNum - 1].SizeOfRawData, fileAlign)) {
-			return 0; 
+			return 0;
 		}
 	}
 	// 如果新区段的VirtualAddress字段为0，则设置为上一个区段的VirtualAddress加上上一个区段的SizeOfRawData，以memAlign对齐
@@ -160,7 +166,7 @@ DWORD PEedit::appendSection(LPBYTE pPeBuf, IMAGE_SECTION_HEADER newSectHeader, L
 	else {
 		// 如果指定的VirtualAddress小于上一个区段的VirtualAddress加上上一个区段的Misc.VirtualSize，无法添加，返回0
 		if (newSectHeader.VirtualAddress < pSectHeader[oldSectNum - 1].VirtualAddress + toAlign(pSectHeader[oldSectNum - 1].Misc.VirtualSize, memAlign)) {
-			return 0; 
+			return 0;
 		}
 		// 修改前一个区段的Misc.VirtualSize使得内存上没有空隙
 		pSectHeader[oldSectNum - 1].Misc.VirtualSize += (newSectHeader.VirtualAddress - pSectHeader[oldSectNum - 1].VirtualAddress - pSectHeader[oldSectNum - 1].Misc.VirtualSize) / memAlign * memAlign;
@@ -177,7 +183,7 @@ DWORD PEedit::appendSection(LPBYTE pPeBuf, IMAGE_SECTION_HEADER newSectHeader, L
 	return bMemAlign ? toAlign(newSectSize, memAlign) : toAlign(newSectSize, fileAlign);
 }
 
-
+/* 已调试 */
 DWORD PEedit::removeSectionDatas(LPBYTE pPeBuf, int removeNum, int removeIdx[]) {
 	// 获取文件头指针，其中包括文件头信息和可选头信息
 	WORD oldSectNum = GetFileHeader(pPeBuf)->NumberOfSections;
@@ -198,5 +204,61 @@ DWORD PEedit::removeSectionDatas(LPBYTE pPeBuf, int removeNum, int removeIdx[]) 
 			tmpidx++;
 		}
 	}
+
 	return decreseRawSize;
+}
+
+/* 目前无异常 */
+DWORD PEedit::savePeFile(const char* path, LPBYTE pPeBuf, DWORD FileBufSize, bool bMemAlign, bool bShrinkPe, LPBYTE pOverlayBuf, DWORD OverlayBufSize)
+{
+	if (pPeBuf == NULL) return 0;
+
+	std::unique_ptr<std::ofstream, std::function<void(std::ofstream*)>> foutGuard(new std::ofstream(path, ios_base::binary | ios_base::out), [](std::ofstream* f) { f->close(); });
+	std::ofstream* fout = NULL;
+	if (foutGuard) fout = foutGuard.get(); else return 0;
+
+	if (isPe((LPBYTE)pPeBuf) < 0) return 0;
+
+	PIMAGE_OPTIONAL_HEADER pOptionalHeader = GetOptionalHeader(pPeBuf);
+	PIMAGE_SECTION_HEADER pSecHeader = GetSectionHeader(pPeBuf);
+	fout->write((const char*)pPeBuf, pOptionalHeader->SizeOfHeaders);
+	DWORD writesize = pOptionalHeader->SizeOfHeaders;
+
+	// 写入各区段
+	for (int i = 0; i < GetFileHeader(pPeBuf)->NumberOfSections; i++) {
+		DWORD sectOffset = bMemAlign ? pSecHeader[i].VirtualAddress : pSecHeader[i].PointerToRawData;
+		DWORD sectsize = toAlign(pSecHeader[i].SizeOfRawData, pOptionalHeader->FileAlignment);
+
+		auto cur = fout->tellp();//防止地址不对
+		if (cur > pSecHeader[i].PointerToRawData) //防止重叠
+		{
+			fout->seekp(pSecHeader[i].PointerToRawData);
+		}
+		else if (cur < pSecHeader[i].PointerToRawData) 
+		{
+			/* 如果bShrinkPe为true，则直接更新pSecHeader[i].PointerToRawData，以便缩减文件大小。*/
+			if (bShrinkPe)
+			{
+				pSecHeader[i].PointerToRawData = (DWORD)cur;
+			}
+			// 如果bShrinkPe为false，则使用循环填充字节来保证文件大小不变。
+			else
+			{
+				for (std::streamoff j = cur; j < pSecHeader[i].PointerToRawData; j++) fout->put(0);
+			}
+		}
+
+		fout->write((const char*)(pPeBuf + sectOffset), sectsize);
+		writesize += sectsize;
+	}
+	// 写入附加段
+	if (pOverlayBuf != NULL && OverlayBufSize != 0)
+	{
+		fout->write((const char*)pOverlayBuf, OverlayBufSize);
+		writesize += OverlayBufSize;
+	}
+
+	//重新写入修正的PE头
+	fout->seekp(0, ios::beg);
+	fout->write((const char*)pPeBuf, pOptionalHeader->SizeOfHeaders);
 }

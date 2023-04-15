@@ -20,6 +20,12 @@ public:
 	static DWORD appendSection(LPBYTE pPeBuf, IMAGE_SECTION_HEADER newSectHeader,LPBYTE pNewSectBuf, DWORD newSectSize, bool bMemAlign = true);
 	// 移除区段数据，返回删除的区段raw size和。不移除header了，因为区段中间有空隙加载pe会出问题
 	static DWORD removeSectionDatas(LPBYTE pPeBuf, int removeNum, int removeIdx[]);
+	// 将缓存区中的区段调整并保存成文件
+	static DWORD savePeFile(const char* path, 
+		LPBYTE pFileBuf, DWORD dwFileBufSize,
+		bool bMemAlign = false, bool bShrinkPe = true, // 移除空白，如去掉区段索引的部分
+		LPBYTE pOverlayBuf = NULL, DWORD OverlayBufSize = 0);//失败返回0，成功返回写入总字节数
+
 public:
 
 };

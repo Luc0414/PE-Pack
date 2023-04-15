@@ -23,17 +23,15 @@ int main(int args, char** argv)
 	std::unique_ptr<std::ifstream, std::function<void(std::ifstream*)>> finGuard(new std::ifstream(out, std::ios_base::in | std::ios_base::binary), [](std::ifstream* f) {f->close(); });
 
 	std::ifstream* fin = NULL;
-	std::ofstream* fout = NULL;
 	if (finGuard) { // 检查指针是否为空
 		fin = finGuard.get(); // 获取原始指针
-		fout = foutGuard.get();
 		// 移动到文件结尾
 		fin->seekg(0, std::ios::end);
 		// 获取文件大小 static_cast
 		const DWORD fsize = static_cast<DWORD>(fin->tellg());
 		/* 创建内存 */
-		LPBYTE pFileBuf = new BYTE[fsize + 0x1800];
-		memset(pFileBuf, 0, fsize + 0x1800);
+		LPBYTE pFileBuf = new BYTE[fsize];
+		memset(pFileBuf, 0, fsize);
 		// 移动到文件开头
 		fin->seekg(0, std::ios::beg);
 		// 读取文件内容到指定缓冲区
@@ -42,7 +40,7 @@ int main(int args, char** argv)
 		int removeIdx[] = { 3 };
 		DWORD result = PEedit::removeSectionDatas(pFileBuf,1, removeIdx);
 
-		fout->write((char *)pFileBuf, fsize);
+		PEedit::savePeFile(delSectHeader, pFileBuf, 0);
 		system("pause");
 	}
 	else {
