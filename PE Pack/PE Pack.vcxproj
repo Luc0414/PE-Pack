@@ -136,6 +136,7 @@
     <ClInclude Include="CPEinfo.h" />
     <ClInclude Include="PeEdit.h" />
     <ClInclude Include="PEInfo.h" />
+    <ClInclude Include="SimpleDpack.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

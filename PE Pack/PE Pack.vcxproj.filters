@@ -21,9 +21,24 @@
     <ClCompile Include="CPEinfo.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="PEedit.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PeInfo.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CPEinfo.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PeEdit.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PEInfo.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SimpleDpack.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
