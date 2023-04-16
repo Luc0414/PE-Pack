@@ -301,3 +301,13 @@ DWORD PEedit::appendSection(IMAGE_SECTION_HEADER newSectHeader, LPBYTE pSectBuf,
 	m_dwPeBufSize = newBufSize;
 	return appendSection(m_pPeBuf, newSectHeader, pSectBuf, newSectSize, m_bMemAlign);
 }
+
+DWORD PEedit::removeSectionDatas(int removeNum, int removeIdx[])
+{
+	return removeSectionDatas(m_pPeBuf, removeNum, removeIdx);
+}
+
+DWORD PEedit::savePeFile(const char* path, bool bShrinkPe)
+{
+	return savePeFile(path, m_pPeBuf, m_dwPeBufSize,m_bMemAlign, bShrinkPe,m_pOverlayBuf, m_dwOverlayBufSize);
+}
