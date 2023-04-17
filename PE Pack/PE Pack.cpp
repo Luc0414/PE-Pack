@@ -2,29 +2,21 @@
 #include "PEInfo.h"
 #include "PeEdit.h"
 #include <direct.h>
+#include "../lzmalib/LzmaLib.h"
 
 using namespace std;
 int main(int args, char** argv)
 {
-	wchar_t szExePath[] = L"F:\\Development\\C++\\PE-Pack\\PE Pack\\notepad.exe";
-	//char cExePath[] = "D:\\Wh0Am1\\C++\\PE Pack\\PE Pack\\notepad.exe";
 	const char* in = "D:\\Wh0Am1\\C++\\PE-Pack\\PE Pack\\test.exe";
-	const char * out = "D:\\Wh0Am1\\C++\\PE-Pack\\PE Pack\\Newtest.exe";
-	const char* delSectHeader = "D:\\Wh0Am1\\C++\\PE-Pack\\PE Pack\\delSectHeader.exe";
-	char cExePath[] = "F:\\Development\\C++\\PE-Pack\\PE Pack\\notepad.exe";
-	char cExePath1[] = "F:\\Development\\C++\\PE-Pack\\PE Pack\\test.exe";
-
-
-	char overlay[] = "Whoami";
+	const char* out = "D:\\Wh0Am1\\C++\\PE-Pack\\PE Pack\\Newtest.exe";
 
 	/* 文件写入 */
-	std::unique_ptr<std::ofstream, std::function<void(std::ofstream*)>> foutGuard(new std::ofstream(delSectHeader, ios_base::binary | ios_base::out), [](std::ofstream* f) { f->close(); });
+	std::unique_ptr<std::ofstream, std::function<void(std::ofstream*)>> foutGuard(new std::ofstream(out, ios_base::binary | ios_base::out), [](std::ofstream* f) { f->close(); });
 	/* 文件读取 */
-	std::unique_ptr<std::ifstream, std::function<void(std::ifstream*)>> finGuard(new std::ifstream(out, std::ios_base::in | std::ios_base::binary), [](std::ifstream* f) {f->close(); });
-
+	std::unique_ptr<std::ifstream, std::function<void(std::ifstream*)>> finGuard(new std::ifstream(in, std::ios_base::in | std::ios_base::binary), [](std::ifstream* f) {f->close(); });
 	std::ifstream* fin = NULL;
-	if (finGuard) { // 检查指针是否为空
-		fin = finGuard.get(); // 获取原始指针
+	if (finGuard) {
+		fin = finGuard.get();
 		// 移动到文件结尾
 		fin->seekg(0, std::ios::end);
 		// 获取文件大小 static_cast
@@ -37,14 +29,9 @@ int main(int args, char** argv)
 		// 读取文件内容到指定缓冲区
 		fin->read(reinterpret_cast<char*>(pFileBuf), fsize);
 
-		int removeIdx[] = { 3 };
-		DWORD result = PEedit::removeSectionDatas(pFileBuf,1, removeIdx);
-
-		PEedit::savePeFile(delSectHeader, pFileBuf, 0);
-		system("pause");
-	}
-	else {
-		return 0;
+		LPBYTE pDstBuf = NULL;
+		pDstBuf = new BYTE[(size_t)(fsize)]; //防止分配缓存区空间过小
+		LzmaCompress()
 	}
 
 }
