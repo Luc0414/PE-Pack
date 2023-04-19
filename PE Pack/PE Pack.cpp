@@ -56,7 +56,7 @@ int main(int args, char** argv)
 		LPBYTE pSrcBuf = new BYTE[fsize * 2];
 		memset(pSrcBuf, 0, fsize * 2);
 		size_t dstSizeUn = pDlzmah->RawDataSize;//release版不赋初值会出错，由于debug将其赋值为cccccccc很大的数
-		LzmaUncompress(pSrcBuf, &dstSizeUn,//此处必须赋最大值
+		LzmaUncompress(pSrcBuf, &dstSizeUn,//此处必须赋最大值  
 			pDstBuf + sizeof(DLZMA_HEADER), &dstSize,
 			pDlzmah->LzmaProps, LZMA_PROPS_SIZE);
 	}

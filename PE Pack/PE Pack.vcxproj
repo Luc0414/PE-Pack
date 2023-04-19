@@ -128,9 +128,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CPEinfo.cpp" />
+    <ClCompile Include="dpackProc.cpp" />
     <ClCompile Include="PE Pack.cpp" />
     <ClCompile Include="PEedit.cpp" />
     <ClCompile Include="PeInfo.cpp" />
+    <ClCompile Include="SimpleDpack.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CPEinfo.h" />
