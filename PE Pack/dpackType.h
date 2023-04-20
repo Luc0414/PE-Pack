@@ -6,3 +6,8 @@ typedef struct _DLZMA_HEADER
 	size_t DataSize;//压缩后的数据大小
 	unsigned char LzmaProps[LZMA_PROPS_SIZE];//原始lzma的文件头
 }DLZMA_HEADER, * PDLZMA_HEADER;//此处外围添加适用于dpack的lzma头
+
+
+
+size_t dlzmaPack(LPBYTE pDstBuf, LPBYTE pSrcBuf, size_t srcSize);
+size_t dlzmaUnpack(LPBYTE pDstBuf, LPBYTE pSrcBuf, size_t srcSize);

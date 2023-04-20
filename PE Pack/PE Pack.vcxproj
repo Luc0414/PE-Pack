@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClCompile Include="CPEinfo.cpp" />
     <ClCompile Include="dpackProc.cpp" />
+    <ClCompile Include="dunpackProc.cpp" />
     <ClCompile Include="PE Pack.cpp" />
     <ClCompile Include="PEedit.cpp" />
     <ClCompile Include="PeInfo.cpp" />

@@ -2,6 +2,7 @@
 #include "PeEdit.h"
 #include <Psapi.h>	
 #include "../lzmalib/LzmaLib.h"
+#include "dpackType.h"
 
 extern "C" // c++中引用c必须要这样
 {
