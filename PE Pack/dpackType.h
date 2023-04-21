@@ -30,3 +30,16 @@ size_t dlzmaPack(LPBYTE pDstBuf, LPBYTE pSrcBuf, size_t srcSize);
  * @return 解压后的数据大小
  */
 size_t dlzmaUnpack(LPBYTE pDstBuf, LPBYTE pSrcBuf, size_t srcSize);
+
+typedef struct _DPACK_SHELL_INDEX //DPACK变换头
+{
+	union
+	{
+		PVOID DpackOepFunc;  // 初始化壳的入口函数（放第一个元素方便初始化）
+		DWORD DpackOepRva;  // 加载shellcode后也许改成入口RVA
+	};
+	DPACK_ORGPE_INDEX OrgIndex;
+	WORD SectionNum;									//变换的区段数，最多MAX_DPACKSECTNUM区段
+	DPACK_SECTION_ENTRY SectionIndex[MAX_DPACKSECTNUM];		//变换区段索引, 以全0结尾
+	PVOID Extra;
+}DPACK_SHELL_INDEX, * PDPACK_SHELL_INDEX;

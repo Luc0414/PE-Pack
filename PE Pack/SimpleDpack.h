@@ -1,6 +1,7 @@
 #include <Windows.h>
 #include "PeEdit.h"
 #include <Psapi.h>	
+#include <iostream>
 #include "../lzmalib/LzmaLib.h"
 #include "dpackType.h"
 
@@ -13,10 +14,15 @@ extern "C" // c++中引用c必须要这样
 #define _SIMPLEDPACK_H
 
 typedef struct _DPACK_TMPBUF_ENTRY {
+	/* 压缩后的数据 */
 	LPBYTE PackedBuf;
+	/* 压缩后的数据大小 */
 	DWORD DpackSize;
+	/* 压缩前的RVA地址 */
 	DWORD OrgRva;
+	/* 压缩前的内存大小 */
 	DWORD OrgMemSize;
+	/* 压缩前的内存页属性 */
 	DWORD Characteristics;
 }DPACK_TMPBUF_ENTRY, * PDPACK_TMPBUF_ENTRY;
 
@@ -49,16 +55,20 @@ protected:
 
 	/* 初始化 m_dpackTmpbuf */
 	WORD initDpackTmpbuf();
-	/* 加壳区段临时缓冲区 */
+	/* 加壳区段临时缓冲区,保存未加壳前区块头部信息 */
 	DPACK_TMPBUF_ENTRY m_dpackTmpbuf[MAX_DPACKSECTNUM];
 
 	PDPACK_SHELL_INDEX m_pShellIndex; // dll中的导出结构
 	HMODULE m_hShell; // 壳dll的句柄
+	/* 加壳的区段数量 */
 	WORD m_dpackSectNum;
 
 	bool m_packSectMap[MAX_DPACKSECTNUM]; // 区段是否被压缩map
 
 	DWORD packSection(int type = DPACK_SECTION_DLZMA);	//pack各区段
+	DWORD loadShellDll(const char* dllpath);	//处理外壳, return dll size
+
+	WORD addDpackTmpbufEntry(LPBYTE packBuf, DWORD packBufSize,DWORD srcRva = 0, DWORD OrgMemSize = 0, DWORD Characteristics = 0xE0000000);//增加dpack索引
 public:
 	CSimpleDpack(){iniValue();}
 	CSimpleDpack(char* path);
