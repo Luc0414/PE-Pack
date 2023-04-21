@@ -42,8 +42,30 @@ public:
 private:
 	char m_strFilePath[MAX_PATH];
 protected:
+	/* 需要加壳的PE结构 */
+	PEedit m_packpe;
+	/* 壳的PE结构 */
+	PEedit m_shellpe;
 
+	/* 初始化 m_dpackTmpbuf */
+	WORD initDpackTmpbuf();
+	/* 加壳区段临时缓冲区 */
+	DPACK_TMPBUF_ENTRY m_dpackTmpbuf[MAX_DPACKSECTNUM];
+
+	PDPACK_SHELL_INDEX m_pShellIndex; // dll中的导出结构
+	HMODULE m_hShell; // 壳dll的句柄
+	WORD m_dpackSectNum;
+
+	bool m_packSectMap[MAX_DPACKSECTNUM]; // 区段是否被压缩map
+
+	DWORD packSection(int type = DPACK_SECTION_DLZMA);	//pack各区段
 public:
-
+	CSimpleDpack(){iniValue();}
+	CSimpleDpack(char* path);
+	virtual ~CSimpleDpack(){release();}
+	void iniValue();
+	virtual	void release();
+	DWORD loadPeFile(const char* path); //加载pe文件，返回isPE()值
+	DWORD packPe(const char* dllpath, int type = DPACK_SECTION_DLZMA); // 加壳，失败返回0，成功返回pack数据大小
 };
 #endif

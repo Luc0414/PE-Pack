@@ -1,5 +1,10 @@
 #include "../lzmalib/LzmaLib.h"
 
+
+#define MAX_DPACKSECTNUM 16 // 最多可pack区段数量
+#define DPACK_SECTION_RAW 0
+#define DPACK_SECTION_DLZMA 1
+
 typedef struct _DLZMA_HEADER
 {
 	size_t RawDataSize;//原始数据尺寸(不含此头)
