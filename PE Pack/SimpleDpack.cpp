@@ -108,6 +108,9 @@ DWORD CSimpleDpack::packSection(int dpackSectionType) {
 		if (sectIdx != -1) {
 			m_packSectMap[sectIdx] = false;
 		}
+
+		// ¼Ó¿Ç¸÷Çø¶Î
+		for(int i=0;i<sectNum;i++)
 	}
 	default:
 		break;
